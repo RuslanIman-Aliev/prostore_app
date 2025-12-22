@@ -3,18 +3,11 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/db/prisma";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compareSync } from "bcrypt-ts-edge";
-import type { NextAuthConfig } from "next-auth";
-import { NextResponse } from "next/server";
+import { authConfig } from "./auth.config"; // <-- Импорт конфига
+
 export const config = {
-  pages: {
-    signIn: "/sign-in",
-    error: "/sign-in",
-  },
-  session: {
-    strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-  },
-  adapter: PrismaAdapter(prisma),
+  ...authConfig, // <-- Берем базовые настройки
+  adapter: PrismaAdapter(prisma), // <-- Подключаем Призму
   providers: [
     CredentialsProvider({
       credentials: {
@@ -49,16 +42,21 @@ export const config = {
     }),
   ],
   callbacks: {
+    ...authConfig.callbacks, // Наследуем authorized из конфига
+    
+    // Переписываем session и jwt, так как тут нужна полная логика
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async session({ session, user, trigger, token }: any) {
       session.user.id = token.sub;
       session.user.role = token.role;
       session.user.name = token.name;
-      if (trigger === "update") {
-        session.user.name = user.name;
+      
+      if (trigger === "update" && session?.user) {
+        session.user.name = session.user.name;
       }
       return session;
     },
+    
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async jwt({ token, user, trigger, session }: any) {
       if (user) {
@@ -73,25 +71,15 @@ export const config = {
           });
         }
       }
+      
+      // Логика обновления
+      if (trigger === "update" && session?.user) {
+         token.name = session.user.name;
+      }
+
       return token;
     },
-    authorized({ request, auth }: any) {
-      if (!request.cookies.get("sessionCartId")) {
-        const sessionCartId = crypto.randomUUID();
-        const newRequestHeaders = new Headers(request.headers);
-        const response = NextResponse.next({
-          request: {
-            headers: newRequestHeaders,
-          },
-        });
-        response.cookies.set("sessionCartId", sessionCartId);
-
-        return response;
-      } else {
-        return true;
-      }
-    },
   },
-} satisfies NextAuthConfig;
+};
 
 export const { handlers, auth, signIn, signOut } = NextAuth(config);
