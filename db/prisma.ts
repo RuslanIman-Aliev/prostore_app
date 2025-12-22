@@ -8,7 +8,7 @@ neonConfig.webSocketConstructor = ws;
 
 // 2. Ваша строка подключения
 // Я оставил её здесь, чтобы исключить проблему с нечитаемым .env
-const connectionString = "postgresql://neondb_owner:npg_mNtAsJFh5g0v@ep-purple-base-adlsfhid-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require";
+const connectionString = process.env.DATABASE_URL;
 
 // 3. НОВЫЙ ПОДХОД (как на скриншоте)
 // Мы больше не создаем "new Pool()". Мы передаем настройки сразу в адаптер.

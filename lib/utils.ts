@@ -1,17 +1,58 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
-//Convert prisma object 
+//Convert prisma object
 
 export function convertToPlainObject<T>(value: T): T {
   return JSON.parse(JSON.stringify(value));
 }
 
-export function formatNumberWithDecimal(num:number): string {
-const [int,decimal] = num.toString().split('.')
-return decimal ? `${int}.${decimal.padEnd(2, '0')}` : `${int}.00`
+export function formatNumberWithDecimal(num: number): string {
+  const [int, decimal] = num.toString().split(".");
+  return decimal ? `${int}.${decimal.padEnd(2, "0")}` : `${int}.00`;
+}
+
+//eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function formatError(error: any) {
+  if (error.name === "ZodError") {
+    let issues = error.errors || error.issues || [];
+
+    if (issues.length === 0 && typeof error.message === "string") {
+      try {
+        const parsed = JSON.parse(error.message);
+        if (Array.isArray(parsed)) {
+          issues = parsed;
+        }
+      } catch {}
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const fieldErrors = issues.map((e: any) => e.message);
+
+    if (fieldErrors.length > 0) {
+      return fieldErrors.join(". ");
+    }
+
+    return "Validation failed";
+  } else if (
+    error.name === "PrismaClientKnownRequestError" &&
+    error.code === "P2002"
+  ) {
+    const field = error.meta?.target ? error.meta.target[0] : "Field";
+    return `${field.charAt(0).toUpperCase() + field.slice(1)} already exists`;
+  } else {
+  }
+}
+
+export function round2(value: number | string) {
+  if (typeof value === "number") {
+    return Math.round((value + Number.EPSILON) * 100) / 100;
+  } else if (typeof value === "string") {
+    return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+  }
+  throw new Error("Value is not a number or string");
 }
