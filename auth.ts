@@ -3,11 +3,12 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/db/prisma";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compareSync } from "bcrypt-ts-edge";
-import { authConfig } from "./auth.config";  
+import { authConfig } from "./auth.config";
+import { cookies } from "next/headers";
 
 export const config = {
-  ...authConfig, // <-- Берем базовые настройки
-  adapter: PrismaAdapter(prisma), // <-- Подключаем Призму
+  ...authConfig,
+  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       credentials: {
@@ -42,24 +43,23 @@ export const config = {
     }),
   ],
   callbacks: {
-    ...authConfig.callbacks, // Наследуем authorized из конфига
-    
-    // Переписываем session и jwt, так как тут нужна полная логика
+    ...authConfig.callbacks,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async session({ session, user, trigger, token }: any) {
       session.user.id = token.sub;
       session.user.role = token.role;
       session.user.name = token.name;
-      
+
       if (trigger === "update" && session?.user) {
         session.user.name = session.user.name;
       }
       return session;
     },
-    
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async jwt({ token, user, trigger, session }: any) {
       if (user) {
+        token.id = user.id;
         token.role = user.role;
 
         if (user.name === "NO_NAME") {
@@ -70,11 +70,33 @@ export const config = {
             data: { name: token.name },
           });
         }
+
+        if (trigger === "signIn" || trigger === "signUp") {
+          const cookiesObject = await cookies();
+          const sessionCartId = cookiesObject.get("sessionCartId")?.value;
+
+          if (sessionCartId) {
+            const sessionCart = await prisma.cart.findFirst({
+              where: { sessionCartId },
+            });
+
+            if (sessionCart) {
+              await prisma.cart.deleteMany({
+                where: { userId: user.id },
+              });
+
+              await prisma.cart.update({
+                where: { id: sessionCart.id },
+                data: { userId: user.id },
+              });
+            }
+          }
+        }
       }
-      
+
       // Логика обновления
       if (trigger === "update" && session?.user) {
-         token.name = session.user.name;
+        token.name = session.user.name;
       }
 
       return token;
