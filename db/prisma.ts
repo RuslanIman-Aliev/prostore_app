@@ -1,29 +1,24 @@
-import { neonConfig } from '@neondatabase/serverless';
-import { PrismaNeon } from '@prisma/adapter-neon';
-import { PrismaClient } from '@prisma/client';
-import ws from 'ws';
+import { neonConfig } from "@neondatabase/serverless";
+import { PrismaNeon } from "@prisma/adapter-neon";
+import { PrismaClient } from "@prisma/client";
+import ws from "ws";
 
-// 1. Настраиваем WebSocket (Это обязательно для Neon Serverless!)
 neonConfig.webSocketConstructor = ws;
 
-// 2. Ваша строка подключения
-// Я оставил её здесь, чтобы исключить проблему с нечитаемым .env
 const connectionString = process.env.DATABASE_URL;
 
-// 3. НОВЫЙ ПОДХОД (как на скриншоте)
-// Мы больше не создаем "new Pool()". Мы передаем настройки сразу в адаптер.
 const adapter = new PrismaNeon({
-  connectionString: connectionString
+  connectionString: connectionString,
 });
 
-// 4. Паттерн Singleton для Next.js (чтобы не плодить соединения)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const globalForPrisma = global as unknown as { prisma: any };
 
 export const prisma =
   globalForPrisma.prisma ||
   new PrismaClient({
-    adapter, // Теперь адаптер совместим без "as any"
-    log: ['error'],
+    adapter,
+    log: ["error"],
   }).$extends({
     result: {
       product: {
@@ -38,7 +33,66 @@ export const prisma =
           },
         },
       },
+      cart: {
+        itemsPrice: {
+          needs: { itemsPrice: true },
+          compute(cart) {
+            return cart.itemsPrice.toString();
+          },
+        },
+        shippingPrice: {
+          needs: { shippingPrice: true },
+          compute(cart) {
+            return cart.shippingPrice.toString();
+          },
+        },
+        taxPrice: {
+          needs: { taxPrice: true },
+          compute(cart) {
+            return cart.taxPrice.toString();
+          },
+        },
+        totalPrice: {
+          needs: { totalPrice: true },
+          compute(cart) {
+            return cart.totalPrice.toString();
+          },
+        },
+      },
+      order: {
+        itemsPrice: {
+          needs: { itemsPrice: true },
+          compute(cart) {
+            return cart.itemsPrice.toString();
+          },
+        },
+        shippingPrice: {
+          needs: { shippingPrice: true },
+          compute(cart) {
+            return cart.shippingPrice.toString();
+          },
+        },
+        taxPrice: {
+          needs: { taxPrice: true },
+          compute(cart) {
+            return cart.taxPrice.toString();
+          },
+        },
+        totalPrice: {
+          needs: { totalPrice: true },
+          compute(cart) {
+            return cart.totalPrice.toString();
+          },
+        },
+      },
+      orderItem: {
+        price: {
+          compute(cart) {
+            return cart.price;
+          },
+        },
+      },
     },
   });
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
