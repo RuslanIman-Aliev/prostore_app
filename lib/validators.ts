@@ -1,4 +1,4 @@
-import { email, z } from "zod";
+import { z } from "zod";
 import { formatNumberWithDecimal } from "./utils";
 import { PAYMENT_METHODS } from "./constants";
 
@@ -100,8 +100,13 @@ export const insertOrderItemSchema = z.object({
 });
 
 export const paymentResultSchema = z.object({
-  id:z.string(),
-  status:z.string(),
-  email_address:z.string(),
-  pricePaid:z.string(),
-})
+  id: z.string(),
+  status: z.string(),
+  email_address: z.string(),
+  pricePaid: z.string(),
+});
+
+export const updateProfileSchema = z.object({
+  name: z.string().min(3, "Name is required"),
+  email: z.string().min(3, "Name is required"),
+});

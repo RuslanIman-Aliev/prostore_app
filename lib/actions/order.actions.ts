@@ -10,6 +10,7 @@ import { prisma } from "@/db/prisma";
 import { CartItem, PaymentResult } from "@/types";
 import { paypal } from "../paypal";
 import { revalidatePath } from "next/cache";
+import { PAGE_SIZE } from "../constants";
 
 export async function createOrder() {
   try {
@@ -147,7 +148,7 @@ export async function createPayPalOrder(orderId: string) {
 
 export async function approvePayPalOrder(
   orderId: string,
-  data: { orderId: string }
+  data: { orderID: string }
 ) {
   try {
     const order = await prisma.order.findFirst({
@@ -157,7 +158,7 @@ export async function approvePayPalOrder(
     });
     if (!order) throw new Error("Order not found");
 
-    const captureData = await paypal.capturePayment(data.orderId);
+    const captureData = await paypal.capturePayment(data.orderID);
 
     if (
       !captureData ||
@@ -166,7 +167,7 @@ export async function approvePayPalOrder(
     ) {
       throw new Error("Error in PayPal payment");
     }
-    updateOrderToPaid({
+    await updateOrderToPaid({
       orderId,
       paymentResult: {
         id: captureData.id,
@@ -177,7 +178,7 @@ export async function approvePayPalOrder(
       },
     });
     revalidatePath(`/order/${orderId}`);
-    return { success: false, message: "Your order has been paid" };
+    return { success: true, message: "Your order has been paid" };
   } catch (error) {
     return { success: false, message: formatError(error) };
   }
@@ -230,4 +231,31 @@ async function updateOrderToPaid({
   if (!updatedOrder) {
     throw new Error("Order not found");
   }
+}
+
+export async function getMyOrders({
+  limit = PAGE_SIZE,
+  page,
+}: {
+  limit?: number;
+  page: number;
+}) {
+  const session = await auth();
+  if (!session) throw new Error("User is not authorized");
+
+  const data = await prisma.order.findMany({
+    where: { userId: session?.user?.id },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    skip: (page - 1) * limit,
+  });
+
+  const dataCount = await prisma.order.count({
+    where: { userId: session?.user?.id },
+  });
+
+  return {
+    data,
+    totalPages: Math.ceil(dataCount / limit),
+  };
 }
