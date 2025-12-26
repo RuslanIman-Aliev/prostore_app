@@ -44,7 +44,7 @@ export const config = {
   ],
   callbacks: {
     ...authConfig.callbacks,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
     async session({ session, user, trigger, token }: any) {
       session.user.id = token.sub;
       session.user.role = token.role;
@@ -94,7 +94,6 @@ export const config = {
         }
       }
 
-      // Логика обновления
       if (trigger === "update" && session?.user) {
         token.name = session.user.name;
       }
@@ -105,3 +104,4 @@ export const config = {
 };
 
 export const { handlers, auth, signIn, signOut } = NextAuth(config);
+ 
