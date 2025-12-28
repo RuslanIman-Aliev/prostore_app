@@ -87,6 +87,7 @@ const ProductForm = ({
     }
   };
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const images = form.watch("images");
   const isFeatured = form.watch("isFeatured");
   const banner = form.watch("banner");

@@ -39,12 +39,21 @@ export async function getAllProducts({
   page: number;
   category?: string;
 }) {
+  const where = query
+    ? {
+        name: {
+          contains: query,
+          mode: "insensitive",
+        },
+      }
+    : {};
   const data = await prisma.product.findMany({
+    where,
     skip: (page - 1) * limit,
     take: limit,
   });
 
-  const dataCount = await prisma.product.count();
+  const dataCount = await prisma.product.count({ where });
 
   return {
     data,
@@ -97,4 +106,13 @@ export async function updateProduct(data: z.infer<typeof updateProductSchema>) {
   } catch (error) {
     return { success: false, message: formatError(error) };
   }
+}
+
+export async function getAllCategories() {
+  const data = await prisma.product.groupBy({
+    by: ["category"],
+    _count: true,
+  });
+
+  return data;
 }
