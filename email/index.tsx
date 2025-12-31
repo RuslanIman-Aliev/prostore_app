@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
-
 import { Resend } from "resend";
 import { SENDER_EMAIL, APP_NAME } from "@/lib/constants";
 import { Order } from "@/types";
