@@ -23,7 +23,7 @@ export async function createOrder() {
     if (!userId) throw new Error("User not found");
 
     const user = await getUserById(userId);
-    if (!cart || cart.items.lenght === 0) {
+    if (!cart || cart.items.length === 0) {
       return {
         success: false,
         message: "Your cart is empty",
